@@ -1,73 +1,42 @@
-# React + TypeScript + Vite
+# haiku.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AI haiku generator powered by Claude. Type a subject and get a haiku back.
 
-Currently, two official plugins are available:
+**[Live demo](https://reneebe.github.io/haiku/)** · Part of [50 Projects in 50 Days](https://reneebe.github.io/50projects)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## How it works
 
-## React Compiler
+1. Describe a feeling, scene, or moment
+2. Claude Haiku (claude-haiku-4-5) composes a 5-7-5 syllable haiku
+3. Lines animate in one by one
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Auth
 
-## Expanding the ESLint configuration
+Two ways to use it:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **MagicLink** — visit with a [MagicLink token](https://magiclink.reneebe.workers.dev) for 5 free generations, no API key needed
+- **API key** — enter your own Claude API key (stored in sessionStorage, cleared on tab close)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- React + TypeScript + Vite
+- [MagicLink](https://github.com/ReneeBe/magiclink) SDK for token-gated API access
+- Claude Haiku 4.5 via Anthropic Messages API
+- GitHub Pages
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Development
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+To test MagicLink locally, append your token to the URL:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+http://localhost:5173/haiku/?token=YOUR_TOKEN
+```
+
+## License
+
+MIT
