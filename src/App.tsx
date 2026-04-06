@@ -1,37 +1,41 @@
 import { useState, useRef, useEffect } from "react";
+import { HaikuDisplay } from "./components/HaikuDisplay";
+import { OnboardingGuide, useOnboarding } from "./components/OnboardingGuide";
+import { useDebounce } from "./hooks/useDebounce";
+import { useHaikuGenerator } from "./hooks/useHaikuGenerator";
 import "./App.css";
 
 declare global {
   interface Window {
-    magiclink?: {
-      hasToken: boolean;
-      claude: (params: unknown) => Promise<{
-        result: { content: { type: string; text: string }[] };
-        usage: { count: number; limit: number; remaining: number };
-      }>;
-    };
+    magiclink?: { hasToken: boolean };
   }
 }
 
-const ANTHROPIC_URL = import.meta.env.DEV
-  ? "/api/anthropic/v1/messages"
-  : "https://api.anthropic.com/v1/messages";
-
-const MAGICLINK_URL = "https://magiclink.reneebe.workers.dev";
-
-type Status = "idle" | "loading" | "done" | "error";
-
 export default function App() {
   const [subject, setSubject] = useState("");
-  const [apiKey, setApiKey] = useState(() => sessionStorage.getItem("haiku-api-key") ?? "");
-  const [haiku, setHaiku] = useState<string[] | null>(null);
-  const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState("");
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const [animate, setAnimate] = useState(false);
+  const [apiKey, setApiKey] = useState(
+    () => sessionStorage.getItem("haiku-api-key") ?? ""
+  );
   const inputRef = useRef<HTMLInputElement>(null);
-
   const hasMagicLink = !!window.magiclink?.hasToken;
+
+  // In MagicLink mode, don't auto-generate (conserve credits)
+  const autoGenerate = !hasMagicLink && !!apiKey.trim();
+  const debouncedSubject = useDebounce(subject, 800);
+
+  const { lines, status, error, remaining, doGenerate, reorderLines, doRebalance } =
+    useHaikuGenerator(debouncedSubject, apiKey, hasMagicLink, autoGenerate);
+
+  const { step, advance, dismiss, restart } = useOnboarding();
+
+  // Show onboarding after first haiku is generated
+  const hasShownRef = useRef(false);
+  useEffect(() => {
+    if (status === "done" && !hasShownRef.current) {
+      hasShownRef.current = true;
+      // Onboarding shows automatically if not dismissed
+    }
+  }, [status]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -43,79 +47,8 @@ export default function App() {
     else sessionStorage.removeItem("haiku-api-key");
   }
 
-  async function generate() {
-    const text = subject.trim();
-    if (!text) return;
-    if (!hasMagicLink && !apiKey.trim()) return;
-
-    setStatus("loading");
-    setError("");
-    setAnimate(false);
-
-    const request = {
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 120,
-      system:
-        "You are a haiku poet. When given a subject, respond with exactly one haiku in the traditional 5-7-5 syllable format. Output only the three lines of the haiku, separated by newlines. No title, no attribution, no explanation.",
-      messages: [{ role: "user", content: text }],
-    };
-
-    try {
-      let content: string;
-
-      if (hasMagicLink) {
-        // MagicLink proxy path
-        const token = localStorage.getItem("magiclink_token");
-        const res = await fetch(`${MAGICLINK_URL}/api/proxy`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token,
-            projectId: "haiku-generator",
-            provider: "claude",
-            request,
-          }),
-        });
-        const json = (await res.json()) as {
-          result?: { content: { type: string; text: string }[] };
-          usage?: { remaining: number };
-          error?: string;
-        };
-        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-        content = json.result!.content[0].text;
-        if (json.usage) setRemaining(json.usage.remaining);
-      } else {
-        // Direct API key path
-        const res = await fetch(ANTHROPIC_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-direct-browser-access": "true",
-          },
-          body: JSON.stringify(request),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-          throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
-        }
-        const data = (await res.json()) as { content: { text: string }[] };
-        content = data.content[0].text;
-      }
-
-      const lines = content
-        .trim()
-        .split("\n")
-        .filter((l) => l.trim());
-
-      setHaiku(lines);
-      setStatus("done");
-      requestAnimationFrame(() => setAnimate(true));
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
-      setStatus("error");
-    }
+  function handleManualGenerate() {
+    doGenerate(subject);
   }
 
   return (
@@ -126,21 +59,23 @@ export default function App() {
       <main className="main">
         {/* Header */}
         <header className="header">
-          <p className="label">day 16 / 50 projects</p>
+          <p className="label">day 17 / 50 projects</p>
           <h1 className="title">
             haiku<span className="accent">.</span>
           </h1>
           <p className="subtitle">
-            Describe a feeling, a scene, a moment — and Claude will compose a
-            haiku.
+            Type a subject and watch the haiku take shape. Drag words to
+            rearrange. Syllable colors show the 5-7-5 structure.
           </p>
         </header>
 
-        {/* Auth: MagicLink banner or API key input */}
+        {/* Auth */}
         {hasMagicLink ? (
           <div className="demo-banner">
             <p className="demo-label">Demo mode active</p>
-            <p className="demo-sub">You have 5 uses — no API key needed.</p>
+            <p className="demo-sub">
+              You have 5 uses. Press Write to generate.
+            </p>
           </div>
         ) : (
           <div className="api-key-area">
@@ -153,8 +88,8 @@ export default function App() {
               className="api-key-input"
             />
             <p className="api-key-hint">
-              Stored in session only — cleared when you close the tab.
-              Or{" "}
+              Stored in session only. Haiku updates as you type.
+              {" "}Or{" "}
               <a
                 href="https://magiclink.reneebe.workers.dev"
                 target="_blank"
@@ -175,46 +110,40 @@ export default function App() {
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") generate();
+              if (e.key === "Enter") handleManualGenerate();
             }}
             placeholder="the melancholy weather of winter..."
             className="input"
-            disabled={status === "loading"}
           />
           <button
-            onClick={generate}
+            onClick={handleManualGenerate}
             disabled={
               !subject.trim() ||
               status === "loading" ||
               (!hasMagicLink && !apiKey.trim())
             }
             className="generate-btn"
+            title={autoGenerate ? "Regenerate" : "Write"}
           >
-            {status === "loading" ? <span className="spinner" /> : "Write"}
+            {status === "loading" ? (
+              <span className="spinner" />
+            ) : autoGenerate ? (
+              "↻"
+            ) : (
+              "Write"
+            )}
           </button>
         </div>
 
         {/* Haiku display */}
-        {haiku && status === "done" && (
-          <div className="haiku-card">
-            <div className="haiku-lines">
-              {haiku.map((line, i) => (
-                <p
-                  key={i}
-                  className={`haiku-line ${animate ? "visible" : ""}`}
-                  style={{ transitionDelay: `${i * 400}ms` }}
-                >
-                  {line}
-                </p>
-              ))}
-            </div>
-            {remaining !== null && (
-              <p className="credits">
-                {remaining} generation{remaining !== 1 ? "s" : ""} remaining
-              </p>
-            )}
-          </div>
-        )}
+        <HaikuDisplay
+          lines={lines}
+          status={status}
+          remaining={remaining}
+          hasMagicLink={hasMagicLink}
+          onReorder={reorderLines}
+          onRebalance={doRebalance}
+        />
 
         {/* Error */}
         {status === "error" && (
@@ -225,6 +154,9 @@ export default function App() {
 
         {/* Footer */}
         <footer className="footer">
+          <button className="help-btn" onClick={restart} title="Show guide">
+            ?
+          </button>
           <a
             href="https://github.com/ReneeBe/haiku"
             target="_blank"
@@ -242,6 +174,9 @@ export default function App() {
           </a>
         </footer>
       </main>
+
+      {/* Onboarding */}
+      <OnboardingGuide step={step} onAdvance={advance} onDismiss={dismiss} />
     </div>
   );
 }

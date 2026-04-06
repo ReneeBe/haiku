@@ -271,6 +271,9 @@ body {
   text-align: center;
   backdrop-filter: blur(20px);
   box-shadow: 0 0 60px var(--accent-glow);
+  width: max-content;
+  min-width: 100%;
+  max-width: 90vw;
 }
 
 .haiku-lines {
@@ -287,6 +290,7 @@ body {
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.5s ease, transform 0.5s ease;
+  white-space: nowrap;
 }
 
 .haiku-line.visible {
@@ -294,12 +298,209 @@ body {
   transform: translateY(0);
 }
 
+.haiku-controls {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.toggle-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.65rem;
+  font-family: var(--font-sans);
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.toggle-btn:hover {
+  color: var(--fg-muted);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Line wrapper (droppable) ─────────────────────────────────────────────── */
+
+.haiku-line-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s, background 0.2s;
+  min-height: 2.4rem;
+}
+
+.haiku-line-wrapper.drop-target {
+  border-color: rgba(196, 167, 231, 0.3);
+  background: rgba(196, 167, 231, 0.05);
+}
+
+.syllable-count {
+  font-size: 0.6rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  min-width: 1.2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.syllable-count.match {
+  color: rgba(156, 207, 216, 0.5);
+}
+
+.syllable-count.mismatch {
+  color: rgba(235, 111, 146, 0.6);
+}
+
+/* ── Drag overlay ────────────────────────────────────────────────────────── */
+
+.drag-overlay-word {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(196, 167, 231, 0.15);
+  box-shadow: 0 0 16px rgba(196, 167, 231, 0.3);
+}
+
 .credits {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--fg-dim);
+}
+
+.demo-drag-note {
+  margin-top: 0.5rem;
+  font-size: 0.6rem;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+/* ── Shimmer loading ─────────────────────────────────────────────────────── */
+
+.haiku-card.shimmer {
+  animation: shimmer 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes shimmer {
+  0% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ── Onboarding ──────────────────────────────────────────────────────────── */
+
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.onboarding-card {
+  background: #1a1a2e;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 340px;
+  text-align: center;
+}
+
+.onboarding-step {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--fg-dim);
+  margin-bottom: 0.75rem;
+}
+
+.onboarding-title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 0.5rem;
+}
+
+.onboarding-text {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--fg-muted);
+  margin-bottom: 1.5rem;
+}
+
+.onboarding-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.onboarding-skip {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  color: var(--fg-dim);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+}
+
+.onboarding-skip:hover {
+  color: var(--fg-muted);
+}
+
+.onboarding-next {
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.onboarding-next:hover {
+  opacity: 0.9;
+}
+
+/* ── Help button ─────────────────────────────────────────────────────────── */
+
+.help-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.6rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--fg-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.help-btn:hover {
+  color: var(--fg-muted);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* ── Error ────────────────────────────────────────────────────────────────── */
