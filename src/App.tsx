@@ -7,24 +7,19 @@ import "./App.css";
 
 declare global {
   interface Window {
-    magiclink?: { hasToken: boolean };
+    magiclink?: { hasToken?: boolean };
   }
 }
 
 export default function App() {
   const [subject, setSubject] = useState("");
-  const [apiKey, setApiKey] = useState(
-    () => sessionStorage.getItem("haiku-api-key") ?? ""
-  );
   const inputRef = useRef<HTMLInputElement>(null);
-  const hasMagicLink = !!window.magiclink?.hasToken;
 
-  // In MagicLink mode, don't auto-generate (conserve credits)
-  const autoGenerate = !hasMagicLink && !!apiKey.trim();
+  const autoGenerate = true;
   const debouncedSubject = useDebounce(subject, 800);
 
   const { lines, status, error, remaining, doGenerate, reorderLines, doRebalance } =
-    useHaikuGenerator(debouncedSubject, apiKey, hasMagicLink, autoGenerate);
+    useHaikuGenerator(debouncedSubject, autoGenerate);
 
   const { step, advance, dismiss, restart } = useOnboarding();
 
@@ -40,12 +35,6 @@ export default function App() {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  function saveApiKey(val: string) {
-    setApiKey(val);
-    if (val) sessionStorage.setItem("haiku-api-key", val);
-    else sessionStorage.removeItem("haiku-api-key");
-  }
 
   function handleManualGenerate() {
     doGenerate(subject);
@@ -69,39 +58,6 @@ export default function App() {
           </p>
         </header>
 
-        {/* Auth */}
-        {hasMagicLink ? (
-          <div className="demo-banner">
-            <p className="demo-label">Demo mode active</p>
-            <p className="demo-sub">
-              You have 5 uses. Press Write to generate.
-            </p>
-          </div>
-        ) : (
-          <div className="api-key-area">
-            <label className="api-key-label">Claude API Key</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => saveApiKey(e.target.value)}
-              placeholder="sk-ant-..."
-              className="api-key-input"
-            />
-            <p className="api-key-hint">
-              Stored in session only. Haiku updates as you type.
-              {" "}Or{" "}
-              <a
-                href="https://magiclink.reneebe.workers.dev"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                get a MagicLink
-              </a>{" "}
-              to try it free.
-            </p>
-          </div>
-        )}
-
         {/* Input */}
         <div className="input-area">
           <input
@@ -117,20 +73,14 @@ export default function App() {
           />
           <button
             onClick={handleManualGenerate}
-            disabled={
-              !subject.trim() ||
-              status === "loading" ||
-              (!hasMagicLink && !apiKey.trim())
-            }
+            disabled={!subject.trim() || status === "loading"}
             className="generate-btn"
-            title={autoGenerate ? "Regenerate" : "Write"}
+            title="Regenerate"
           >
             {status === "loading" ? (
               <span className="spinner" />
-            ) : autoGenerate ? (
-              "↻"
             ) : (
-              "Write"
+              "↻"
             )}
           </button>
         </div>
@@ -140,7 +90,6 @@ export default function App() {
           lines={lines}
           status={status}
           remaining={remaining}
-          hasMagicLink={hasMagicLink}
           onReorder={reorderLines}
           onRebalance={doRebalance}
         />

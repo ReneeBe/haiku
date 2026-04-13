@@ -23,7 +23,6 @@ interface Props {
   lines: HaikuWord[][];
   status: Status;
   remaining: number | null;
-  hasMagicLink: boolean;
   onReorder: (newLines: HaikuWord[][]) => void;
   onRebalance: (lines: HaikuWord[][]) => void;
 }
@@ -35,7 +34,7 @@ function findLineIndex(lines: HaikuWord[][], wordId: string): number {
   return -1;
 }
 
-export function HaikuDisplay({ lines, status, remaining, hasMagicLink, onReorder, onRebalance }: Props) {
+export function HaikuDisplay({ lines, status, remaining, onReorder, onRebalance }: Props) {
   const [animate, setAnimate] = useState(false);
   const [highlightEnabled, setHighlightEnabled] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -202,11 +201,6 @@ export function HaikuDisplay({ lines, status, remaining, hasMagicLink, onReorder
       {remaining !== null && (
         <p className="credits">
           {remaining} generation{remaining !== 1 ? "s" : ""} remaining
-        </p>
-      )}
-      {hasMagicLink && (
-        <p className="demo-drag-note">
-          Dragging words between lines uses a generation.
         </p>
       )}
     </div>

@@ -26,8 +26,6 @@ function parseLines(raw: string[]): HaikuWord[][] {
 
 export function useHaikuGenerator(
   debouncedSubject: string,
-  apiKey: string,
-  hasMagicLink: boolean,
   autoGenerate: boolean
 ) {
   const [state, setState] = useState<HaikuState>({
@@ -41,7 +39,6 @@ export function useHaikuGenerator(
   const doGenerate = useCallback(
     async (subject: string) => {
       if (!subject.trim()) return;
-      if (!hasMagicLink && !apiKey.trim()) return;
 
       // Cancel any in-flight request
       abortRef.current?.abort();
@@ -53,8 +50,6 @@ export function useHaikuGenerator(
       try {
         const result: GenerateResult = await generateHaiku({
           subject,
-          apiKey,
-          hasMagicLink,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -73,7 +68,7 @@ export function useHaikuGenerator(
         }));
       }
     },
-    [apiKey, hasMagicLink]
+    []
   );
 
   // Auto-generate on debounced subject change
@@ -89,8 +84,6 @@ export function useHaikuGenerator(
 
   const doRebalance = useCallback(
     async (currentLines: HaikuWord[][]) => {
-      if (!hasMagicLink && !apiKey.trim()) return;
-
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -103,8 +96,6 @@ export function useHaikuGenerator(
         );
         const result: GenerateResult = await rebalanceHaiku({
           lines: wordLines,
-          apiKey,
-          hasMagicLink,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -123,7 +114,7 @@ export function useHaikuGenerator(
         }));
       }
     },
-    [apiKey, hasMagicLink]
+    []
   );
 
   return { ...state, doGenerate, reorderLines, doRebalance };

@@ -25,15 +25,11 @@ function syllableFeedback(lines: string[]): string {
 
 export interface GenerateOptions {
   subject: string;
-  apiKey: string;
-  hasMagicLink: boolean;
   signal?: AbortSignal;
 }
 
 export interface RebalanceOptions {
   lines: string[][];
-  apiKey: string;
-  hasMagicLink: boolean;
   signal?: AbortSignal;
 }
 
@@ -43,33 +39,33 @@ export interface GenerateResult {
 }
 
 interface ApiCallOptions {
-  apiKey: string;
-  hasMagicLink: boolean;
   request: Record<string, unknown>;
   signal?: AbortSignal;
 }
 
-/** Low-level API call that handles both MagicLink and direct key paths */
+/** Low-level API call: always try MagicLink proxy first, fall back to direct if unavailable */
 async function callClaude({
-  apiKey,
-  hasMagicLink,
   request,
   signal,
 }: ApiCallOptions): Promise<{ content: string; remaining: number | null }> {
   let content: string;
   let remaining: number | null = null;
 
-  if (hasMagicLink) {
+  if (window.magiclink) {
+    // MagicLink 2.0: send token if available, omit for visitor mode
     const token = localStorage.getItem("magiclink_token");
+    const body: Record<string, unknown> = {
+      projectId: "haiku-generator",
+      provider: "claude",
+      request,
+    };
+    if (token) {
+      body.token = token;
+    }
     const res = await fetch(`${MAGICLINK_URL}/api/proxy`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token,
-        projectId: "haiku-generator",
-        provider: "claude",
-        request,
-      }),
+      body: JSON.stringify(body),
       signal,
     });
     const json = (await res.json()) as {
@@ -81,6 +77,9 @@ async function callClaude({
     content = json.result!.content[0].text;
     if (json.usage) remaining = json.usage.remaining;
   } else {
+    // Fallback: direct API key (e.g. local dev without MagicLink SDK)
+    const apiKey = sessionStorage.getItem("haiku-api-key") ?? "";
+    if (!apiKey) throw new Error("No MagicLink SDK and no API key configured");
     const res = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: {
@@ -114,8 +113,6 @@ function parseHaikuLines(content: string): string[] {
 
 export async function generateHaiku({
   subject,
-  apiKey,
-  hasMagicLink,
   signal,
 }: GenerateOptions): Promise<GenerateResult> {
   const system =
@@ -136,8 +133,6 @@ export async function generateHaiku({
     };
 
     const { content, remaining } = await callClaude({
-      apiKey,
-      hasMagicLink,
       request,
       signal,
     });
@@ -168,8 +163,6 @@ export async function generateHaiku({
 
 export async function rebalanceHaiku({
   lines,
-  apiKey,
-  hasMagicLink,
   signal,
 }: RebalanceOptions): Promise<GenerateResult> {
   const currentState = lines
@@ -197,8 +190,6 @@ export async function rebalanceHaiku({
     };
 
     const { content, remaining } = await callClaude({
-      apiKey,
-      hasMagicLink,
       request,
       signal,
     });
