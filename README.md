@@ -6,17 +6,14 @@ AI haiku playground powered by Claude. Type a subject and watch the haiku take s
 
 ## Features
 
-- **Real-time generation**: haiku updates as you type (with API key) or on demand (MagicLink demo mode)
+- **Real-time generation**: haiku updates as you type
 - **Syllable highlighting**: each syllable position gets a distinct color across all three lines, so you can see the 5-7-5 structure at a glance
 - **Drag to rearrange**: grab any word and drag it within a line or between lines. Cross-line moves trigger a rebalance to restore 5-7-5
 - **Onboarding guide**: first-time visitors get a quick walkthrough of the interactive features
 
 ## Auth
 
-Two ways to use it:
-
-- **MagicLink**: visit with a [MagicLink token](https://magiclink.reneebe.workers.dev) for 5 free generations, no API key needed
-- **API key**: enter your own Claude API key (stored in sessionStorage, cleared on tab close)
+No API key needed. The app includes a daily visitor pool for free usage. [MagicLink](https://magiclink.reneebe.workers.dev/resume) tokens provide additional access (20 uses across all projects).
 
 ## Stack
 
