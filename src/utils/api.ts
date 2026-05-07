@@ -41,12 +41,14 @@ export interface GenerateResult {
 interface ApiCallOptions {
   request: Record<string, unknown>;
   signal?: AbortSignal;
+  idempotencyKey?: string;
 }
 
 /** Low-level API call: always try MagicLink proxy first, fall back to direct if unavailable */
 async function callClaude({
   request,
   signal,
+  idempotencyKey,
 }: ApiCallOptions): Promise<{ content: string; remaining: number | null }> {
   let content: string;
   let remaining: number | null = null;
@@ -61,6 +63,9 @@ async function callClaude({
     };
     if (token) {
       body.token = token;
+    }
+    if (idempotencyKey) {
+      body.idempotencyKey = idempotencyKey;
     }
     const res = await fetch(`${MAGICLINK_URL}/api/proxy`, {
       method: "POST",
@@ -123,6 +128,7 @@ export async function generateHaiku({
   ];
 
   let lastRemaining: number | null = null;
+  const idempotencyKey = `haiku-gen-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const request = {
@@ -135,6 +141,7 @@ export async function generateHaiku({
     const { content, remaining } = await callClaude({
       request,
       signal,
+      idempotencyKey,
     });
     lastRemaining = remaining;
 
@@ -180,6 +187,7 @@ export async function rebalanceHaiku({
   ];
 
   let lastRemaining: number | null = null;
+  const idempotencyKey = `haiku-rebal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const request = {
@@ -192,6 +200,7 @@ export async function rebalanceHaiku({
     const { content, remaining } = await callClaude({
       request,
       signal,
+      idempotencyKey,
     });
     lastRemaining = remaining;
 
